@@ -7,10 +7,11 @@ if (!$ticketId) {
     redirect(url('/tickets'));
 }
 
-$stmt = db()->prepare("SELECT t.*, u.full_name AS creator_name, a.full_name AS assigned_name
+$stmt = db()->prepare("SELECT t.*, u.full_name AS creator_name, st.full_name AS assigned_name, a.asset_code, a.name AS asset_name
     FROM tickets t
     LEFT JOIN users u ON t.user_id = u.id
-    LEFT JOIN users a ON t.assigned_to = a.id
+    LEFT JOIN users st ON t.assigned_to = st.id
+    LEFT JOIN assets a ON t.asset_id = a.id
     WHERE t.id = ?");
 $stmt->execute([$ticketId]);
 $ticket = $stmt->fetch();
@@ -76,6 +77,19 @@ ob_start();
                     <div class="datagrid-item">
                         <div class="datagrid-title">Subject</div>
                         <div class="datagrid-content"><?= e($ticket['subject']) ?></div>
+                    </div>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Terkait Aset</div>
+                        <div class="datagrid-content">
+                            <?php if ($ticket['asset_code']): ?>
+                                <a href="<?= url('/it-assets?q=' . urlencode($ticket['asset_code'])) ?>" class="badge bg-purple-lt text-decoration-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon text-purple me-1"><path d="M4 7v-1a2 2 0 0 1 2 -2h2"/><path d="M4 17v1a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v1"/><path d="M16 20h2a2 2 0 0 0 2 -2v-1"/><path d="M5 11h1v2h-1z"/><path d="M10 11l0 2"/><path d="M14 11h1v2h-1z"/><path d="M19 11l0 2"/></svg>
+                                    <?= e($ticket['asset_name']) ?> (<?= e($ticket['asset_code']) ?>)
+                                </a>
+                            <?php else: ?>
+                                <span class="text-secondary">—</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                     <div class="datagrid-item">
                         <div class="datagrid-title">Dibuat oleh</div>

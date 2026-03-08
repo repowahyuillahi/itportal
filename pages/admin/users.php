@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $v = new Validator($_POST);
         $v->required('username', 'Username')->required('full_name', 'Nama Lengkap')
             ->required('password', 'Password')->minLength('password', 6, 'Password')
+            ->required('department', 'Kategori/Bagian')
             ->in('role', ['admin', 'staff', 'user', 'dealer'], 'Role');
 
         if ($v->fails()) {
@@ -27,10 +28,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash('error', 'Username sudah digunakan.');
             } else {
                 $hash = password_hash($v->get('password'), PASSWORD_BCRYPT);
-                $stmt = db()->prepare("INSERT INTO users (username, password, full_name, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 1, NOW(), NOW())");
-                $stmt->execute([$v->get('username'), $hash, $v->get('full_name'), $v->get('role')]);
+                $stmt = db()->prepare("INSERT INTO users (username, password, full_name, role, department, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW())");
+                $stmt->execute([$v->get('username'), $hash, $v->get('full_name'), $v->get('role'), $v->get('department')]);
                 flash('success', 'User berhasil ditambahkan.');
             }
+        }
+    } elseif ($action === 'edit') {
+        $uid = (int) ($_POST['user_id'] ?? 0);
+        $v = new Validator($_POST);
+        $v->required('full_name', 'Nama Lengkap')
+          ->required('department', 'Kategori/Bagian')
+          ->in('role', ['admin', 'staff', 'user', 'dealer'], 'Role');
+
+        if ($v->fails()) {
+             flash('error', $v->firstError());
+        } else {
+             $stmt = db()->prepare("UPDATE users SET full_name = ?, role = ?, department = ?, updated_at = NOW() WHERE id = ?");
+             $stmt->execute([$v->get('full_name'), $v->get('role'), $v->get('department'), $uid]);
+             flash('success', 'User berhasil diupdate.');
         }
     } elseif ($action === 'toggle') {
         $uid = (int) ($_POST['user_id'] ?? 0);
@@ -66,6 +81,7 @@ ob_start();
                 <tr>
                     <th>Username</th>
                     <th>Nama Lengkap</th>
+                    <th>Bagian/Kategori</th>
                     <th>Role</th>
                     <th>Status</th>
                     <th>Dibuat</th>
@@ -77,10 +93,12 @@ ob_start();
                     <tr>
                         <td class="fw-bold"><?= e($u['username']) ?></td>
                         <td><?= e($u['full_name']) ?></td>
+                        <td><?= e($u['department'] ?? '-') ?></td>
                         <td><span class="badge bg-blue-lt"><?= e(ucfirst($u['role'])) ?></span></td>
                         <td><?= $u['is_active'] ? '<span class="badge bg-green">Aktif</span>' : '<span class="badge bg-red">Nonaktif</span>' ?></td>
                         <td class="text-secondary"><?= formatDate($u['created_at'], 'd/m/Y') ?></td>
                         <td>
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modal-edit-<?= $u['id'] ?>">Edit</button>
                             <?php if ($u['id'] != $_SESSION['user_id']): ?>
                                 <form method="POST" class="d-inline">
                                     <?= csrfField() ?>
@@ -99,11 +117,39 @@ ob_start();
                                         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary">Reset</button></div>
                                     </form>
                                 </div></div></div>
-                            <?php else: ?>
-                                <span class="text-secondary">—</span>
                             <?php endif; ?>
                         </td>
                     </tr>
+
+                    <!-- Edit User Modal -->
+                    <div class="modal fade" id="modal-edit-<?= $u['id'] ?>"><div class="modal-dialog"><div class="modal-content">
+                        <form method="POST">
+                            <?= csrfField() ?>
+                            <input type="hidden" name="action" value="edit">
+                            <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                            <div class="modal-header"><h5 class="modal-title">Edit User: <?= e($u['username']) ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <div class="modal-body">
+                                <div class="mb-3"><label class="form-label required">Nama Lengkap</label><input type="text" name="full_name" class="form-control" value="<?= e($u['full_name']) ?>" required></div>
+                                <div class="mb-3"><label class="form-label required">Bagian / Kategori</label>
+                                    <select name="department" class="form-select" required>
+                                        <option value="">-- Pilih --</option>
+                                        <?php foreach (getDepartmentsList() as $dept): ?>
+                                            <option value="<?= e($dept) ?>" <?= ($u['department'] ?? '') === $dept ? 'selected' : '' ?>><?= e($dept) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="mb-3"><label class="form-label required">Role</label>
+                                    <select name="role" class="form-select" required>
+                                        <option value="user" <?= $u['role'] === 'user' ? 'selected' : '' ?>>User</option>
+                                        <option value="staff" <?= $u['role'] === 'staff' ? 'selected' : '' ?>>Staff IT</option>
+                                        <option value="admin" <?= $u['role'] === 'admin' ? 'selected' : '' ?>>Admin</option>
+                                        <option value="dealer" <?= $u['role'] === 'dealer' ? 'selected' : '' ?>>Dealer</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary">Simpan</button></div>
+                        </form>
+                    </div></div></div>
                 <?php endforeach; ?>
             </tbody>
         </table>
@@ -119,10 +165,18 @@ ob_start();
         <div class="modal-body">
             <div class="mb-3"><label class="form-label required">Username</label><input type="text" name="username" class="form-control" required></div>
             <div class="mb-3"><label class="form-label required">Nama Lengkap</label><input type="text" name="full_name" class="form-control" required></div>
+            <div class="mb-3"><label class="form-label required">Bagian / Kategori</label>
+                <select name="department" class="form-select" required>
+                    <option value="">-- Pilih --</option>
+                    <?php foreach (getDepartmentsList() as $dept): ?>
+                        <option value="<?= e($dept) ?>"><?= e($dept) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             <div class="mb-3"><label class="form-label required">Password</label><input type="password" name="password" class="form-control" required minlength="6"></div>
             <div class="mb-3"><label class="form-label required">Role</label>
                 <select name="role" class="form-select" required>
-                    <option value="user">User</option><option value="staff">Staff</option><option value="admin">Admin</option><option value="dealer">Dealer</option>
+                    <option value="user">User</option><option value="staff">Staff IT</option><option value="admin">Admin</option><option value="dealer">Dealer</option>
                 </select>
             </div>
         </div>

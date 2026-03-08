@@ -22,14 +22,15 @@ if ($v->fails()) {
 
 $ticketCode = generateTicketCode();
 $userId = $_SESSION['user_id'];
+$asset_id = ($_POST['asset_id'] ?? '') !== '' ? (int)$_POST['asset_id'] : null;
 
 try {
     db()->beginTransaction();
 
     // Insert ticket
-    $stmt = db()->prepare("INSERT INTO tickets (ticket_code, user_id, subject, category, priority, status, created_at, updated_at)
-                           VALUES (?, ?, ?, ?, ?, 'open', NOW(), NOW())");
-    $stmt->execute([$ticketCode, $userId, $v->get('subject'), $v->get('category'), $v->get('priority', 'medium')]);
+    $stmt = db()->prepare("INSERT INTO tickets (ticket_code, user_id, subject, category, priority, status, asset_id, created_at, updated_at)
+                           VALUES (?, ?, ?, ?, ?, 'open', ?, NOW(), NOW())");
+    $stmt->execute([$ticketCode, $userId, $v->get('subject'), $v->get('category'), $v->get('priority', 'medium'), $asset_id]);
     $ticketId = db()->lastInsertId();
 
     // Insert initial message

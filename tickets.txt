@@ -1,0 +1,12 @@
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+ticket_code	varchar(30)	NO	UNI	NULL	
+user_id	int(11)	NO	MUL	NULL	
+subject	varchar(255)	NO		NULL	
+category	varchar(100)	NO		Lainnya	
+priority	enum('low','medium','high','urgent')	NO	MUL	medium	
+status	enum('open','in_progress','waiting','resolved','closed')	NO	MUL	open	
+assigned_to	int(11)	YES	MUL	NULL	
+created_at	timestamp	NO	MUL	current_timestamp()	
+updated_at	timestamp	NO		current_timestamp()	on update current_timestamp()
+closed_at	timestamp	YES		NULL	

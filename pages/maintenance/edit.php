@@ -19,7 +19,9 @@ if (!$r) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
-    $stmt = db()->prepare("UPDATE maintenance_reports SET status=?, tanggal=?, pelapor=?, dealer=?, laporan_awal=?, pengecekan=?, solusi=?, item=?, waktu_mulai=?, waktu_selesai=? WHERE id=?");
+    $technician_id = $_POST['technician_id'] ?: null;
+    $asset_id = ($_POST['asset_id'] ?? '') !== '' ? (int)$_POST['asset_id'] : null;
+    $stmt = db()->prepare("UPDATE maintenance_reports SET status=?, tanggal=?, pelapor=?, dealer=?, laporan_awal=?, pengecekan=?, solusi=?, item=?, waktu_mulai=?, waktu_selesai=?, technician_id=?, asset_id=? WHERE id=?");
     $stmt->execute([
         $_POST['status'],
         $_POST['tanggal'],
@@ -31,6 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         trim($_POST['item']),
         $_POST['waktu_mulai'] ?: null,
         $_POST['waktu_selesai'] ?: null,
+        $technician_id,
+        $asset_id,
         $id
     ]);
     if ($stmt->rowCount() > 0 || $stmt->errorCode() === '00000') {
@@ -51,6 +55,12 @@ foreach ($dealers as $d) {
 }
 $items = db()->query("SELECT DISTINCT item FROM maintenance_reports WHERE is_active = 1 ORDER BY item")->fetchAll(PDO::FETCH_COLUMN);
 
+// Staff list for technician
+$staffs = db()->query("SELECT id, full_name, username FROM users WHERE role IN ('admin', 'staff') AND is_active = 1 ORDER BY full_name")->fetchAll();
+
+// Active assets
+$assets = db()->query("SELECT id, asset_code, name FROM assets WHERE status = 'Active' ORDER BY name")->fetchAll();
+
 $pageActions = '<a href="' . url('/maintenance/view?id=' . $id) . '" class="btn btn-outline-secondary d-none d-sm-inline-block"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M9 14l-4 -4l4 -4"/><path d="M5 10h11a4 4 0 1 1 0 8h-1"/></svg> Kembali</a>';
 
 ob_start();
@@ -65,17 +75,17 @@ ob_start();
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="form-label required">Tanggal</label>
                             <input type="date" name="tanggal" class="form-control" value="<?= e($r['tanggal']) ?>"
                                 required>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="form-label required">Pelapor</label>
                             <input type="text" name="pelapor" class="form-control" value="<?= e($r['pelapor']) ?>"
                                 required>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="form-label required">Dealer</label>
                             <select name="dealer" class="form-select" required>
                                 <?php
@@ -96,6 +106,15 @@ ob_start();
                                 <?php if (!$foundSel && $r['dealer']): ?>
                                     <option value="<?= e($r['dealer']) ?>" selected><?= e($r['dealer']) ?></option>
                                 <?php endif; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Terkait Aset (Opsional)</label>
+                            <select name="asset_id" class="form-select">
+                                <option value="">-- Tidak Terkait Aset --</option>
+                                <?php foreach ($assets as $a): ?>
+                                    <option value="<?= $a['id'] ?>" <?= $r['asset_id'] == $a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?> (<?= e($a['asset_code']) ?>)</option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -124,6 +143,17 @@ ob_start();
                                 <?php foreach (['Open', 'In Progress', 'Closed'] as $s): ?>
                                     <option value="<?= $s ?>" <?= $r['status'] === $s ? 'selected' : '' ?>>
                                         <?= $s ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-muted">Dikerjakan Oleh (Teknisi)</label>
+                            <select name="technician_id" class="form-select">
+                                <option value="">-- Otomatis --</option>
+                                <?php foreach ($staffs as $s): ?>
+                                    <option value="<?= $s['id'] ?>" <?= $r['technician_id'] == $s['id'] ? 'selected' : '' ?>>
+                                        <?= e($s['full_name']) ?> (<?= e($s['username']) ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>

@@ -5,6 +5,9 @@
 $pageTitle = 'Buat Ticket Baru';
 $pagePretitle = 'Tickets';
 
+// Fetch assets
+$assets = db()->query("SELECT id, asset_code, name FROM assets WHERE status = 'Active' ORDER BY name")->fetchAll();
+
 $pageActions = '<a href="' . url('/tickets') . '" class="btn btn-outline-secondary d-none d-sm-inline-block"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M9 14l-4 -4l4 -4"/><path d="M5 10h11a4 4 0 1 1 0 8h-1"/></svg> Kembali</a>';
 
 ob_start();
@@ -24,7 +27,7 @@ ob_start();
                             value="<?= e(old('subject')) ?>" required maxlength="255">
                     </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label required">Kategori</label>
                             <select name="category" class="form-select" required>
                                 <option value="">-- Pilih Kategori --</option>
@@ -34,7 +37,7 @@ ob_start();
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Prioritas</label>
                             <select name="priority" class="form-select">
                                 <option value="medium" <?= old('priority', 'medium') === 'medium' ? 'selected' : '' ?>>
@@ -43,6 +46,15 @@ ob_start();
                                 <option value="high" <?= old('priority') === 'high' ? 'selected' : '' ?>>High</option>
                                 <option value="urgent" <?= old('priority') === 'urgent' ? 'selected' : '' ?>>Urgent
                                 </option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Terkait Aset (Opsional)</label>
+                            <select name="asset_id" class="form-select">
+                                <option value="">-- Tidak Terkait Aset --</option>
+                                <?php foreach ($assets as $a): ?>
+                                    <option value="<?= $a['id'] ?>" <?= old('asset_id') == $a['id'] ? 'selected' : '' ?>><?= e($a['name']) ?> (<?= e($a['asset_code']) ?>)</option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
@@ -86,6 +98,7 @@ ob_start();
                         <li><strong>Kategori:</strong> Pilih jenis masalah (Hardware, Software, dll)</li>
                         <li><strong>Detail:</strong> Jelaskan masalah secara rinci, termasuk langkah yang sudah dicoba
                         </li>
+                        <li><strong>Aset:</strong> Pilih aset yang bermasalah (jika ada)</li>
                         <li><strong>Lampiran:</strong> Screenshot atau dokumen pendukung</li>
                     </ul>
                 </div>

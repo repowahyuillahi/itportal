@@ -152,6 +152,7 @@ $_user = currentUser();
         <div class="loader-label">Memuat halaman...</div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/js/tabler.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <div class="page">
         <!-- SIDEBAR (dark vertical navbar) -->
         <?php include __DIR__ . '/partials/sidebar.php'; ?>

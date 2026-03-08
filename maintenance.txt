@@ -1,0 +1,17 @@
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+status	enum('Open','In Progress','Closed')	NO	MUL	Open	
+tanggal	date	NO	MUL	NULL	
+pelapor	varchar(100)	NO		NULL	
+dealer	varchar(200)	NO	MUL	NULL	
+laporan_awal	text	NO		NULL	
+pengecekan	text	YES		NULL	
+solusi	text	YES		NULL	
+item	varchar(100)	NO	MUL	NULL	
+waktu_mulai	datetime	YES		NULL	
+waktu_selesai	datetime	YES		NULL	
+lead_time	time	YES		NULL	STORED GENERATED
+created_by	int(11)	YES	MUL	NULL	
+is_active	tinyint(1)	YES	MUL	1	
+created_at	timestamp	YES		current_timestamp()	
+updated_at	timestamp	YES		current_timestamp()	on update current_timestamp()

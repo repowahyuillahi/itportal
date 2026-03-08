@@ -23,6 +23,47 @@ $recentMaint = db()->query("SELECT * FROM maintenance_reports WHERE is_active = 
 $totalDealers = db()->query("SELECT COUNT(*) FROM dealers WHERE is_active = 1")->fetchColumn();
 $certExpiring = db()->query("SELECT COUNT(*) FROM sertifikat WHERE is_active = 1 AND tanggal_akhir <= DATE_ADD(CURDATE(), INTERVAL 90 DAY)")->fetchColumn();
 
+// ─── Chart Data (7 Days Trend) ───
+$trendQuery = db()->query("
+    SELECT DATE(tanggal) as tgl, COUNT(*) as cnt 
+    FROM maintenance_reports 
+    WHERE is_active = 1 AND tanggal >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+    GROUP BY DATE(tanggal) 
+    ORDER BY DATE(tanggal) ASC
+")->fetchAll();
+
+$chartDates = [];
+$chartCounts = [];
+// pad 7 days manually to ensure no gaps
+for ($i = 6; $i >= 0; $i--) {
+    $d = date('Y-m-d', strtotime("-$i days"));
+    $chartDates[] = date('d M', strtotime($d));
+    $foundCnt = 0;
+    foreach ($trendQuery as $row) {
+        if ($row['tgl'] === $d) {
+            $foundCnt = (int) $row['cnt'];
+            break;
+        }
+    }
+    $chartCounts[] = $foundCnt;
+}
+
+// ─── Chart Data (Status Proportion) ───
+$statusQuery = db()->query("
+    SELECT status, COUNT(*) as cnt 
+    FROM maintenance_reports 
+    WHERE is_active = 1 
+    GROUP BY status
+")->fetchAll();
+$statusMap = ['Open' => 0, 'In Progress' => 0, 'Closed' => 0];
+foreach ($statusQuery as $row) {
+    if (isset($statusMap[$row['status']])) {
+        $statusMap[$row['status']] = (int) $row['cnt'];
+    }
+}
+$statusSeries = array_values($statusMap);
+$statusLabels = array_keys($statusMap);
+
 ob_start();
 ?>
 <!-- Welcome Card -->
@@ -104,10 +145,32 @@ ob_start();
         </div>
     </div>
 
+    <!-- ── Baris 2: Charts ── -->
+    <div class="col-lg-8 border-top-0 pt-3">
+        <div class="card">
+            <div class="card-header border-0 pb-0">
+                <h3 class="card-title">Tren Laporan (7 Hari Terakhir)</h3>
+            </div>
+            <div class="card-body">
+                <div id="chart-trend" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 border-top-0 pt-3">
+        <div class="card">
+            <div class="card-header border-0 pb-0">
+                <h3 class="card-title">Proporsi Status</h3>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div id="chart-status" style="width: 100%;"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- ── Baris 3: Konten Utama (Laporan) + Panel Sekunder ── -->
 
     <!-- Laporan Terbaru – konten utama -->
-    <div class="col-lg-8">
+    <div class="col-lg-8 border-top-0 pt-3">
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">Laporan Terbaru</h3>
@@ -211,6 +274,103 @@ ob_start();
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Trend Chart Configuration
+    var optionsTrend = {
+        series: [{
+            name: 'Laporan Baru',
+            data: <?= json_encode($chartCounts) ?>
+        }],
+        chart: {
+            height: 300,
+            type: 'area',
+            fontFamily: 'inherit',
+            parentHeightOffset: 0,
+            toolbar: {
+                show: false
+            },
+            animations: {
+                enabled: true
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+        stroke: {
+            curve: 'smooth',
+            width: 2,
+            colors: ['#0054a6']
+        },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shadeIntensity: 1,
+                opacityFrom: 0.4,
+                opacityTo: 0.05,
+                stops: [0, 90, 100]
+            },
+            colors: ['#0054a6']
+        },
+        xaxis: {
+            categories: <?= json_encode($chartDates) ?>,
+            tooltip: {
+                enabled: false
+            },
+            axisBorder: {
+                show: false
+            }
+        },
+        yaxis: {
+            labels: {
+                padding: 4
+            },
+        },
+        colors: ['#0054a6'],
+        grid: {
+            strokeDashArray: 4,
+            padding: {
+                top: -20,
+                right: 0,
+                left: -4,
+                bottom: -4
+            }
+        }
+    };
+
+    var chartTrend = new ApexCharts(document.querySelector("#chart-trend"), optionsTrend);
+    chartTrend.render();
+
+    // Status Chart Configuration
+    var optionsStatus = {
+        series: <?= json_encode($statusSeries) ?>,
+        labels: <?= json_encode($statusLabels) ?>,
+        chart: {
+            type: 'donut',
+            height: 250,
+            fontFamily: 'inherit',
+        },
+        colors: ['#f59f00', '#206bc4', '#2fb344'], // Open(Yellow), In Progress(Blue), Closed(Green)
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '65%'
+                }
+            }
+        },
+        dataLabels: {
+            enabled: false
+        },
+        legend: {
+            position: 'bottom'
+        }
+    };
+
+    var chartStatus = new ApexCharts(document.querySelector("#chart-status"), optionsStatus);
+    chartStatus.render();
+});
+</script>
 
 <?php
 $content = ob_get_clean();

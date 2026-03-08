@@ -1,0 +1,7 @@
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+question	varchar(255)	NO		NULL	
+answer	text	NO		NULL	
+category	varchar(100)	YES		NULL	
+created_at	timestamp	NO		current_timestamp()	
+updated_at	timestamp	NO		current_timestamp()	on update current_timestamp()

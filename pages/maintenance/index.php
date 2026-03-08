@@ -35,8 +35,15 @@ if ($search) {
 $whereSQL = 'WHERE ' . implode(' AND ', $where);
 
 // ── Export CSV ──
+// ── Export CSV ──
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
-    $exportStmt = db()->prepare("SELECT m.* FROM maintenance_reports m $whereSQL ORDER BY m.tanggal DESC, m.id DESC");
+    $exportStmt = db()->prepare("
+        SELECT m.*, u.full_name as technician_name 
+        FROM maintenance_reports m 
+        LEFT JOIN users u ON m.technician_id = u.id 
+        $whereSQL 
+        ORDER BY m.tanggal DESC, m.id DESC
+    ");
     $exportStmt->execute($params);
     $exportRows = $exportStmt->fetchAll();
 
@@ -45,7 +52,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $out = fopen('php://output', 'w');
     // BOM for Excel
     fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-    fputcsv($out, ['No', 'Tanggal', 'Pelapor', 'Dealer', 'Item', 'Status', 'Laporan Awal', 'Pengecekan', 'Solusi', 'Lead Time']);
+    fputcsv($out, ['No', 'Tanggal', 'Pelapor', 'Dealer', 'Item', 'Status', 'Laporan Awal', 'Pengecekan', 'Solusi', 'Lead Time', 'Teknisi']);
     foreach ($exportRows as $i => $row) {
         fputcsv($out, [
             $i + 1,
@@ -57,7 +64,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $row['laporan_awal'],
             $row['pengecekan'],
             $row['solusi'],
-            $row['lead_time'] ?? ''
+            $row['lead_time'] ?? '',
+            $row['technician_name'] ?? ''
         ]);
     }
     fclose($out);
@@ -70,7 +78,14 @@ $total = $countStmt->fetchColumn();
 $totalPages = max(1, ceil($total / $perPage));
 $offset = ($page - 1) * $perPage;
 
-$sql = "SELECT m.* FROM maintenance_reports m $whereSQL ORDER BY m.tanggal DESC, m.id DESC LIMIT $perPage OFFSET $offset";
+$sql = "
+    SELECT m.*, u.full_name as technician_name 
+    FROM maintenance_reports m 
+    LEFT JOIN users u ON m.technician_id = u.id 
+    $whereSQL 
+    ORDER BY m.tanggal DESC, m.id DESC 
+    LIMIT $perPage OFFSET $offset
+";
 $stmt = db()->prepare($sql);
 $stmt->execute($params);
 $reports = $stmt->fetchAll();
@@ -176,12 +191,12 @@ ob_start();
         <table class="table table-vcenter card-table table-striped">
             <thead>
                 <tr>
-                    <th>No</th><th>Tanggal</th><th>Pelapor</th><th>Dealer</th><th>Laporan</th><th>Item</th><th>Status</th><th>Lead Time</th><th class="w-1">Aksi</th>
+                    <th>No</th><th>Tanggal</th><th>Pelapor</th><th>Dealer</th><th>Laporan</th><th>Item</th><th>Teknisi</th><th>Status</th><th>Lead Time</th><th class="w-1">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($reports)): ?>
-                    <tr><td colspan="9" class="text-center text-secondary py-4">Tidak ada laporan ditemukan.</td></tr>
+                    <tr><td colspan="10" class="text-center text-secondary py-4">Tidak ada laporan ditemukan.</td></tr>
                 <?php else: ?>
                     <?php foreach ($reports as $r): ?>
                     <tr>
@@ -191,6 +206,7 @@ ob_start();
                         <td><?= e($r['dealer']) ?></td>
                         <td><span class="text-truncate d-inline-block" style="max-width:200px"><?= e($r['laporan_awal']) ?></span></td>
                         <td><span class="badge bg-azure-lt"><?= e($r['item']) ?></span></td>
+                        <td><?= e($r['technician_name'] ?? '-') ?></td>
                         <td>
                             <?php $statusColor = match ($r['status']) { 'Open' => 'yellow', 'In Progress' => 'blue', 'Closed' => 'green', default => 'secondary'}; ?>
                             <span class="badge bg-<?= $statusColor ?>-lt"><?= e($r['status']) ?></span>

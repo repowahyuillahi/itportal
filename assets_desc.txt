@@ -1,0 +1,41 @@
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+asset_code	varchar(50)	NO	UNI	NULL	
+name	varchar(255)	NO		NULL	
+type	varchar(100)	YES		NULL	
+branch	varchar(100)	YES		NULL	
+user_id	int(11)	YES		NULL	
+status	enum('Active','Broken','Maintenance','Retired')	YES		Active	
+created_at	timestamp	NO		current_timestamp()	
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+ticket_code	varchar(30)	NO	UNI	NULL	
+user_id	int(11)	NO	MUL	NULL	
+subject	varchar(255)	NO		NULL	
+category	varchar(100)	NO		Lainnya	
+priority	enum('low','medium','high','urgent')	NO	MUL	medium	
+status	enum('open','in_progress','waiting','resolved','closed')	NO	MUL	open	
+assigned_to	int(11)	YES	MUL	NULL	
+asset_id	int(11)	YES	MUL	NULL	
+created_at	timestamp	NO	MUL	current_timestamp()	
+updated_at	timestamp	NO		current_timestamp()	on update current_timestamp()
+closed_at	timestamp	YES		NULL	
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	auto_increment
+status	enum('Open','In Progress','Closed')	NO	MUL	Open	
+tanggal	date	NO	MUL	NULL	
+pelapor	varchar(100)	NO		NULL	
+dealer	varchar(200)	NO	MUL	NULL	
+laporan_awal	text	NO		NULL	
+pengecekan	text	YES		NULL	
+solusi	text	YES		NULL	
+item	varchar(100)	NO	MUL	NULL	
+waktu_mulai	datetime	YES		NULL	
+waktu_selesai	datetime	YES		NULL	
+lead_time	time	YES		NULL	STORED GENERATED
+created_by	int(11)	YES	MUL	NULL	
+technician_id	int(11)	YES	MUL	NULL	
+asset_id	int(11)	YES	MUL	NULL	
+is_active	tinyint(1)	YES	MUL	1	
+created_at	timestamp	YES		current_timestamp()	
+updated_at	timestamp	YES		current_timestamp()	on update current_timestamp()

@@ -9,7 +9,15 @@ if (!$id) {
     redirect(url('/maintenance'));
 }
 
-$stmt = db()->prepare("SELECT * FROM maintenance_reports WHERE id = ? AND is_active = 1");
+$stmt = db()->prepare("
+    SELECT m.*, 
+           u.full_name as technician_name,
+           a.asset_code, a.name as asset_name
+    FROM maintenance_reports m 
+    LEFT JOIN users u ON m.technician_id = u.id 
+    LEFT JOIN assets a ON m.asset_id = a.id
+    WHERE m.id = ? AND m.is_active = 1
+");
 $stmt->execute([$id]);
 $r = $stmt->fetch();
 if (!$r) {
@@ -64,6 +72,19 @@ ob_start();
                             </span></div>
                     </div>
                     <div class="datagrid-item">
+                        <div class="datagrid-title">Terkait Aset</div>
+                        <div class="datagrid-content">
+                            <?php if ($r['asset_code']): ?>
+                                <a href="<?= url('/it-assets?q=' . urlencode($r['asset_code'])) ?>" class="badge bg-purple-lt text-decoration-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon text-purple me-1"><path d="M4 7v-1a2 2 0 0 1 2 -2h2"/><path d="M4 17v1a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v1"/><path d="M16 20h2a2 2 0 0 0 2 -2v-1"/><path d="M5 11h1v2h-1z"/><path d="M10 11l0 2"/><path d="M14 11h1v2h-1z"/><path d="M19 11l0 2"/></svg>
+                                    <?= e($r['asset_name']) ?> (<?= e($r['asset_code']) ?>)
+                                </a>
+                            <?php else: ?>
+                                <span class="text-secondary">—</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="datagrid-item">
                         <div class="datagrid-title">Waktu Mulai</div>
                         <div class="datagrid-content">
                             <?= $r['waktu_mulai'] ? date('d M Y H:i', strtotime($r['waktu_mulai'])) : '—' ?>
@@ -81,6 +102,17 @@ ob_start();
                                 <?= $r['lead_time'] ? substr($r['lead_time'], 0, 5) : '—' ?>
                             </strong></div>
                     </div>
+                    <?php if ($r['technician_name']): ?>
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">Dikerjakan Oleh</div>
+                        <div class="datagrid-content">
+                            <span class="badge bg-primary-lt">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon text-primary me-1"><path d="M12 5m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M5 21l3 -3l1.5 -1.5l1.5 1.5l3 -3l1.5 -1.5l1.5 1.5l3 -3l-3 -3l-1.5 1.5l-1.5 -1.5l-3 3l-1.5 -1.5l-1.5 1.5l-3 -3l-3 3v2z"/></svg>
+                                <?= e($r['technician_name']) ?>
+                            </span>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

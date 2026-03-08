@@ -143,3 +143,20 @@ function isActivePage(string $path): string
         return 'active';
     return '';
 }
+
+/**
+ * List of available departments
+ */
+function getDepartmentsList(): array
+{
+    return [
+        'IT',
+        'CS',
+        'Tata Usaha',
+        'HRD',
+        'Finance',
+        'Marketing',
+        'Operational',
+        'Lainnya'
+    ];
+}

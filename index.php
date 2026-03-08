@@ -23,31 +23,51 @@ if ($path !== '/' && str_ends_with($path, '/')) {
 
 // Route mapping: URL path -> page file
 $routes = [
-    '/' => 'pages/dashboard/index.php',
-    '/login' => 'pages/auth/login.php',
-    '/logout' => 'pages/auth/logout.php',
-    '/dashboard' => 'pages/dashboard/index.php',
-    // Tickets (removed — maintenance only)
+    '/'                             => 'pages/dashboard/index.php',
+    '/login'                        => 'pages/auth/login.php',
+    '/logout'                       => 'pages/auth/logout.php',
+    '/dashboard'                    => 'pages/dashboard/index.php',
     // Profile
-    '/profile' => 'pages/profile/index.php',
+    '/profile'                      => 'pages/profile/index.php',
     // Maintenance Reports
-    '/maintenance' => 'pages/maintenance/index.php',
-    '/maintenance/view' => 'pages/maintenance/view.php',
-    '/maintenance/create' => 'pages/maintenance/create.php',
-    '/maintenance/edit' => 'pages/maintenance/edit.php',
+    '/maintenance'                  => 'pages/maintenance/index.php',
+    '/maintenance/view'             => 'pages/maintenance/view.php',
+    '/maintenance/create'           => 'pages/maintenance/create.php',
+    '/maintenance/edit'             => 'pages/maintenance/edit.php',
+    '/maintenance/export'           => 'pages/maintenance/export.php',
+    '/maintenance/actions/delete'   => 'pages/maintenance/actions/delete.php',
+    // Tickets
+    '/tickets'                      => 'pages/tickets/index.php',
+    '/tickets/create'               => 'pages/tickets/create.php',
+    '/tickets/view'                 => 'pages/tickets/view.php',
+    '/tickets/edit'                 => 'pages/tickets/edit.php',
+    '/tickets/export'               => 'pages/tickets/export.php',
+    '/tickets/actions/create'       => 'pages/tickets/actions/create.php',
+    '/tickets/actions/reply'        => 'pages/tickets/actions/reply.php',
+    '/tickets/actions/assign'       => 'pages/tickets/actions/assign.php',
+    '/tickets/actions/update-status'=> 'pages/tickets/actions/update-status.php',
+    '/tickets/actions/delete'       => 'pages/tickets/actions/delete.php',
+    // Assets IT
+    '/it-assets'                   => 'pages/assets/index.php',
+    '/it-assets/actions/create'    => 'pages/assets/actions/create.php',
+    '/it-assets/actions/update'    => 'pages/assets/actions/update.php',
+    '/it-assets/actions/delete'    => 'pages/assets/actions/delete.php',
+    // FAQ / Knowledge Base
+    '/faq'                          => 'pages/faq/index.php',
     // Data Master
-    '/dealers' => 'pages/dealers/index.php',
-    '/divisi' => 'pages/divisi/index.php',
-    '/sertifikat' => 'pages/sertifikat/index.php',
-    '/sertifikat/download' => 'pages/sertifikat/download.php',
-    '/sertifikat/debug' => 'pages/sertifikat/debug_dl.php',
-    '/zahir' => 'pages/zahir/index.php',
+    '/dealers'                      => 'pages/dealers/index.php',
+    '/divisi'                       => 'pages/divisi/index.php',
+    '/sertifikat'                   => 'pages/sertifikat/index.php',
+    '/sertifikat/download'          => 'pages/sertifikat/download.php',
+    '/sertifikat/debug'             => 'pages/sertifikat/debug_dl.php',
+    '/zahir'                        => 'pages/zahir/index.php',
     // Public
-    '/track' => 'pages/track/index.php',
-    '/wa' => 'pages/wa/index.php',
+    '/track'                        => 'pages/track/index.php',
+    '/wa'                           => 'pages/wa/index.php',
     // Admin
-    '/admin/users' => 'pages/admin/users.php',
-    '/admin/settings' => 'pages/admin/settings.php',
+    '/admin/users'                  => 'pages/admin/users.php',
+    '/admin/settings'               => 'pages/admin/settings.php',
+    '/admin/faq'                    => 'pages/admin/faq/index.php',
 ];
 
 // Public routes (no login required)
@@ -66,4 +86,3 @@ if ($pageFile && file_exists(BASE_PATH . '/' . $pageFile)) {
     http_response_code(404);
     require BASE_PATH . '/pages/errors/404.php';
 }
-

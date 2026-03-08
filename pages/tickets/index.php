@@ -38,6 +38,41 @@ if ($search) {
 
 $whereSQL = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
+// ── Export CSV ──
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    $exportSql = "SELECT t.*, u.full_name AS creator_name, a.full_name AS assigned_name
+        FROM tickets t
+        LEFT JOIN users u ON t.user_id = u.id
+        LEFT JOIN users a ON t.assigned_to = a.id
+        $whereSQL
+        ORDER BY t.created_at DESC";
+    $exportStmt = db()->prepare($exportSql);
+    $exportStmt->execute($params);
+    $exportRows = $exportStmt->fetchAll();
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="data_tickets_' . date('Y-m-d') . '.csv"');
+    $out = fopen('php://output', 'w');
+    // BOM for Excel
+    fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+    fputcsv($out, ['Kode', 'Subject', 'Kategori', 'Status', 'Prioritas', 'Dibuat Oleh', 'Assigned', 'Tanggal Dibuat', 'Tanggal Selesai']);
+    foreach ($exportRows as $row) {
+        fputcsv($out, [
+            $row['ticket_code'],
+            $row['subject'],
+            $row['category'],
+            $row['status'],
+            $row['priority'],
+            $row['creator_name'] ?? 'Unknown',
+            $row['assigned_name'] ?? 'Belum di-assign',
+            $row['created_at'],
+            $row['closed_at'] ?? ''
+        ]);
+    }
+    fclose($out);
+    exit;
+}
+
 // Count
 $countStmt = db()->prepare("SELECT COUNT(*) FROM tickets t $whereSQL");
 $countStmt->execute($params);
@@ -107,6 +142,12 @@ ob_start();
                     </svg>
                     Filter
                 </button>
+            </div>
+            <div class="col-auto">
+                <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'csv'])) ?>" class="btn btn-outline-green">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M12 17v-6"/><path d="M9.5 14.5l2.5 2.5l2.5 -2.5"/></svg>
+                    Export CSV
+                </a>
             </div>
         </form>
     </div>

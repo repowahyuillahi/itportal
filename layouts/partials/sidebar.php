@@ -58,6 +58,13 @@ $currentPath = str_replace('/itportal', '', $currentPath);
                         <span class="nav-link-title">Home</span>
                     </a>
                 </li>
+                <!-- Knowledge Base -->
+                <li class="nav-item <?= str_starts_with($currentPath, '/faq') ? 'active' : '' ?>">
+                    <a class="nav-link" href="<?= url('/faq') ?>">
+                        <span class="nav-link-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 17h6"/><path d="M9 13h6"/></svg></span>
+                        <span class="nav-link-title">Knowledge Base / FAQ</span>
+                    </a>
+                </li>
                 <!-- Maintenance - always expanded -->
                 <li class="nav-item <?= str_starts_with($currentPath, '/maintenance') ? 'active' : '' ?>">
                     <a class="nav-link" href="<?= url('/maintenance') ?>">
@@ -89,6 +96,12 @@ $currentPath = str_replace('/itportal', '', $currentPath);
                     <li class="nav-item"><span class="nav-link nav-link-header"
                             style="color: rgba(255,255,255,0.4); font-size: 0.625rem; letter-spacing: .04em; text-transform: uppercase; padding-bottom: 0;">Data
                             Master</span></li>
+                    <li class="nav-item <?= str_starts_with($currentPath, '/it-assets') ? 'active' : '' ?>">
+                        <a class="nav-link" href="<?= url('/it-assets') ?>">
+                            <span class="nav-link-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M4 7v-1a2 2 0 0 1 2 -2h2"/><path d="M4 17v1a2 2 0 0 0 2 2h2"/><path d="M16 4h2a2 2 0 0 1 2 2v1"/><path d="M16 20h2a2 2 0 0 0 2 -2v-1"/><path d="M5 11h1v2h-1z"/><path d="M10 11l0 2"/><path d="M14 11h1v2h-1z"/><path d="M19 11l0 2"/></svg></span>
+                            <span class="nav-link-title">Aset IT</span>
+                        </a>
+                    </li>
                     <li class="nav-item <?= $currentPath === '/dealers' ? 'active' : '' ?>">
                         <a class="nav-link" href="<?= url('/dealers') ?>">
                             <span class="nav-link-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -154,6 +167,12 @@ $currentPath = str_replace('/itportal', '', $currentPath);
                     <!-- Admin -->
                     <li class="nav-item"><span class="nav-link nav-link-header"
                             style="color: rgba(255,255,255,0.4); font-size: 0.625rem; letter-spacing: .04em; text-transform: uppercase; padding-bottom: 0;">Admin</span>
+                    </li>
+                    <li class="nav-item <?= $currentPath === '/admin/faq' ? 'active' : '' ?>">
+                        <a class="nav-link" href="<?= url('/admin/faq') ?>">
+                            <span class="nav-link-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M4 14v-3a8 8 0 1 1 16 0v3"/><path d="M18 19c0 1.657 -2.686 3 -6 3"/><path d="M4 14a2 2 0 0 1 2 -2h1a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-1a2 2 0 0 1 -2 -2z"/><path d="M15 14a2 2 0 0 1 2 -2h1a2 2 0 0 1 2 2v3a2 2 0 0 1 -2 2h-1a2 2 0 0 1 -2 -2z"/></svg></span>
+                            <span class="nav-link-title">Kelola FAQ</span>
+                        </a>
                     </li>
                     <li class="nav-item <?= $currentPath === '/admin/users' ? 'active' : '' ?>">
                         <a class="nav-link" href="<?= url('/admin/users') ?>">
