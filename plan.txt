@@ -1,0 +1,381 @@
+Sip, kita pakai **page-based** dengan struktur yang kamu mau: `pages/tickets/...` ✅
+Ini **prompt lengkap** buat Opus (tanpa MVC), tinggal copy–paste.
+
+> Catatan: aku memang lihat kamu upload `itportal (1).sql`, tapi di tool internal sini kadang file upload bisa “expired” untuk dibaca otomatis. Jadi **di prompt ini aku minta Opus membaca langsung file SQL yang kamu lampirkan** (yang kamu kirim ke Opus). Jadi aman.
+
+---
+
+## PROMPT OPUS 4.6 — PAGE BASED (PAGES/TICKETS) FULL
+
+Kamu adalah senior fullstack developer. Buat aplikasi **IT Helpdesk / Ticketing** dengan **PHP Native (tanpa framework)** dan UI **Tabler.io terbaru (Bootstrap 5)**. Fokus: **mudah dimaintenance oleh pemilik**, jadi gunakan **page-based routing** dengan folder `pages/`.
+
+### Environment
+
+* Local dev: **XAMPP (Apache + PHP)** di Windows
+* Production: **aaPanel (Linux) PHP 8.3**
+* Database: MySQL/MariaDB, gunakan DB dari file SQL yang saya lampirkan: `itportal (1).sql` (import ke MySQL)
+
+### Aturan utama (wajib)
+
+* **Tidak pakai MVC**.
+* Setiap halaman berupa file PHP di folder `pages/...`.
+* Logika umum dipindah ke `includes/` (helper) agar tidak duplikasi.
+* Semua query DB wajib **PDO prepared statements**.
+* Form POST wajib punya **CSRF token**.
+* Output HTML wajib di-escape untuk anti XSS.
+* Upload file aman (whitelist ext + size limit + rename).
+* Tidak boleh bikin file kosong / placeholder. Semua file harus ada isinya dan runnable.
+
+---
+
+# 1) STRUKTUR FOLDER WAJIB
+
+Buat struktur persis begini:
+
+```
+itportal/
+  index.php
+  .htaccess
+  config/
+    config.php
+  includes/
+    bootstrap.php
+    db.php
+    auth.php
+    csrf.php
+    helpers.php
+    validator.php
+    uploader.php
+    ticket_helpers.php
+    flash.php
+  layouts/
+    main.php
+    auth.php
+    partials/
+      sidebar.php
+      topbar.php
+      flash.php
+      pagination.php
+  pages/
+    auth/
+      login.php
+      logout.php
+    dashboard/
+      index.php
+    tickets/
+      index.php
+      create.php
+      view.php
+      edit.php
+      actions/
+        create.php
+        reply.php
+        update_status.php
+        assign.php
+        upload.php
+    track/
+      index.php          (public tracking link)
+    admin/
+      users.php
+      settings.php
+    errors/
+      403.php
+      404.php
+  assets/
+    tabler/   (semua asset Tabler disimpan lokal, bukan CDN)
+    custom/
+      app.css
+      app.js
+  storage/
+    uploads/
+    logs/
+  database/
+    schema_addon.sql
+    seed.sql
+  README.md
+  .env.example
+  .env  (dibuat user)
+```
+
+Catatan:
+
+* `index.php` adalah front controller yang memilih file di `pages/` berdasarkan path.
+* Semua file/folder gunakan huruf kecil agar aman di Linux (aaPanel).
+
+---
+
+# 2) ROUTING (PAGE BASED) + URL REWRITE
+
+Gunakan URL rapi seperti:
+
+* `/login`
+* `/logout`
+* `/dashboard`
+* `/tickets`
+* `/tickets/create`
+* `/tickets/view?id=123` (boleh) atau `/tickets/123` (opsional)
+* `/track?token=xxxxx` (public link)
+
+Minimal requirement: URL rewrite lempar semua ke `index.php`.
+
+Buat `.htaccess`:
+
+* jika file/folder ada -> langsung
+* selain itu -> `index.php`
+
+`index.php`:
+
+* parse `$_SERVER['REQUEST_URI']`
+* mapping ke file di `pages/`
+* kalau tidak ada -> `pages/errors/404.php`
+
+---
+
+# 3) CONFIG & ENV
+
+Buat `.env.example`:
+
+* APP_NAME
+* APP_ENV=local|prod
+* APP_URL
+* DB_HOST
+* DB_PORT
+* DB_NAME
+* DB_USER
+* DB_PASS
+* UPLOAD_MAX_MB=10
+* TOKEN_SECRET=some-long-random
+* WA_NUMBER_DEFAULT=62xxxxxxxxxx (placeholder)
+
+`includes/bootstrap.php` membaca `.env` dan set config.
+
+---
+
+# 4) DATABASE: GUNAKAN ITPORTAL SQL + TAMBAHAN TABEL TICKETING
+
+Langkah:
+
+1. Import file `itportal (1).sql` sebagai database utama.
+2. Jika tabel ticketing belum ada di SQL itu, buat file `database/schema_addon.sql` untuk menambahkan tabel-tabel ticketing berikut:
+
+Tabel minimal (wajib):
+
+1. `tickets`
+
+* id (PK AI)
+* ticket_code (unik)
+* user_id (FK users.id)
+* subject
+* category
+* priority (low/medium/high/urgent)
+* status (open/in_progress/waiting/resolved/closed)
+* assigned_to (FK users.id nullable)
+* created_at, updated_at, closed_at nullable
+
+2. `ticket_messages`
+
+* id
+* ticket_id
+* user_id nullable (kalau system)
+* message
+* is_internal tinyint default 0 (optional)
+* created_at
+
+3. `ticket_attachments`
+
+* id
+* ticket_id
+* message_id nullable
+* file_path
+* original_name
+* mime
+* size
+* created_at
+
+4. `ticket_tokens`
+
+* id
+* ticket_id
+* token (unik)
+* type (public_track, wa_update)
+* revoked_at nullable
+* expires_at nullable
+* created_at
+
+5. `ticket_audit`
+
+* id
+* ticket_id
+* actor_user_id nullable
+* action
+* meta_json
+* created_at
+
+Buat juga `database/seed.sql`:
+
+* Insert admin default:
+
+  * email: [admin@local.test](mailto:admin@local.test)
+  * password: admin123 (hash)
+  * role: admin
+
+---
+
+# 5) FITUR UTAMA
+
+## A) AUTH
+
+* Login memakai `users` table (gunakan kolom password hash yang ada; jika belum ada, tambahkan kolom `password_hash` atau gunakan kolom password yang sesuai dari SQL).
+* Session-based auth.
+* Middleware sederhana:
+
+  * halaman selain `/login` wajib login kecuali `/track`
+
+Role:
+
+* user: buat ticket + lihat ticket milik sendiri
+* staff: lihat & kelola ticket yang di-assign / semua ticket (pilih salah satu, jelaskan)
+* admin: full access + user management
+
+## B) TICKETS (USER)
+
+Halaman:
+
+* `pages/tickets/index.php`
+
+  * list ticket milik user (admin/staff bisa lihat semua)
+  * ada filter status + search ticket_code/subject
+  * pagination
+* `pages/tickets/create.php`
+
+  * form: subject, category, priority, message awal, optional attachment
+  * POST ke `pages/tickets/actions/create.php`
+* `pages/tickets/view.php`
+
+  * tampil detail + status badge + assigned staff
+  * tampil timeline messages
+  * form reply (POST ke `actions/reply.php`)
+  * upload file optional
+
+Ticket code:
+
+* format: `TCK-YYYYMMDD-XXXX` (XXXX incremental per hari atau random 4 digit yang unik)
+
+## C) TICKETS (STAFF/ADMIN)
+
+Aksi:
+
+* assign ticket ke staff (`actions/assign.php`)
+* update status (`actions/update_status.php`)
+* close ticket -> status `closed` atau `resolved`
+
+RULE WAJIB:
+
+* Jika status berubah ke `resolved` atau `closed`:
+
+  * revoke token type `public_track` (set `revoked_at=NOW()`)
+  * public link `/track?token=...` jadi tidak aktif (menampilkan pesan link kadaluarsa/tidak aktif)
+
+## D) PUBLIC TRACKING LINK (TANPA LOGIN)
+
+`pages/track/index.php`
+
+* input: `?token=xxxxx`
+* cari token di `ticket_tokens` type=public_track dan revoked_at IS NULL
+* jika tidak valid -> tampilkan halaman “Link tidak aktif”
+* jika valid -> tampilkan:
+
+  * ticket_code, subject (opsional), status, timeline message (public)
+* setelah ticket closed/resolved link otomatis invalid
+
+Saat ticket dibuat:
+
+* generate token random panjang (misal 32-64 chars)
+* simpan sebagai `public_track` token
+* tampilkan link di halaman ticket view & juga di list
+
+## E) LINK UPDATE VIA WHATSAPP (STUB DULU)
+
+Saat ticket dibuat juga generate token type `wa_update`.
+
+Buat tombol “Kirim link update via WhatsApp” (untuk sekarang hanya generate link):
+
+* WA link format:
+
+  * `https://wa.me/<nomor>?text=<urlencode(pesan)>`
+* Pesan minimal:
+
+  * “Update ticket {ticket_code}: {APP_URL}/wa?token=xxxxx”
+    Buat halaman stub:
+* `pages/tickets/view.php` menampilkan “WA Update Link”
+* Buat endpoint stub `pages/wa/index.php` atau pakai `pages/track/wa.php` (pilih salah satu rapi)
+* Endpoint WA:
+
+  * kalau token valid dan belum revoked:
+
+    * tampilkan form “Kirim update (komentar)”
+    * submit -> simpan ke `ticket_messages` sebagai pesan baru
+  * ini untuk simulasi sebelum Baileys, jangan implement Baileys sekarang
+* Sediakan `includes/NotificationService.php` sebagai stub (kosong) untuk integrasi Baileys nanti.
+
+---
+
+# 6) UI TABLER
+
+Wajib:
+
+* Layout Tabler rapi:
+
+  * sidebar + topbar
+  * breadcrumb
+  * flash messages
+* Dashboard (`/dashboard`):
+
+  * card: Open, In Progress, Closed Today, Total Tickets
+* Tickets list table:
+
+  * search
+  * filter status
+  * pagination
+
+---
+
+# 7) ERROR PAGES
+
+* 403 & 404 dengan styling Tabler.
+
+---
+
+# 8) README DEPLOYMENT
+
+Buat `README.md` yang jelas:
+
+* Cara install di XAMPP:
+
+  * taruh folder ke htdocs
+  * import SQL
+  * buat `.env`
+  * akses URL
+* Cara deploy ke aaPanel:
+
+  * upload folder
+  * set domain root
+  * import DB
+  * set `.env`
+  * set permission `storage/uploads` writable
+  * contoh rewrite Nginx setara `.htaccess`
+
+---
+
+# 9) OUTPUT YANG HARUS DIKELUARKAN
+
+* Semua source code lengkap sesuai struktur
+* `schema_addon.sql`, `seed.sql`, `.env.example`, `README.md`
+* Pastikan semua halaman berjalan dan tidak error
+
+Penutup:
+“Jangan gunakan placeholder kosong, jangan file 0 byte. Pastikan semua fungsi helper ada implementasi. Pastikan semua route mapping benar. Pastikan siap untuk PHP 8.3.”
+
+---
+
+Kalau kamu mau aku tambah 1 bagian lagi ke prompt: **menu-modul dari database lama** (`dealers`, `divisi`, `maintenance_reports`, dll) supaya ikut masuk ke sidebar + CRUD juga, bilang aja: modul mana yang mau ditampilkan dulu (misal hanya Ticketing dulu, atau ticketing + maintenance_reports).
